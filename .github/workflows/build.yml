@@ -24,6 +24,7 @@ jobs:
             python3 \
             bison flex \
             libssl-dev \
+            libgnutls28-dev \
             u-boot-tools
 
       - name: Clone U-Boot from source.denx.de (mirror via GitHub)
