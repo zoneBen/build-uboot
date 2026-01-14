@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Device Tree Source for CMT Cube RK3288
+ *
+ * Based on vendor DTS and adapted for mainline U-Boot.
  */
 
-/dts-v1/;
 #include "rk3288.dtsi"
 
 / {
 	model = "CMT Cube RK3288";
 	compatible = "rockchip,rk3288";
+
+	memory {
+		reg = <0x0 0x0 0x0 0x80000000>; /* 2GB */
+	};
 
 	chosen {
 		stdout-path = "serial2:115200n8";
@@ -17,32 +22,211 @@
 	aliases {
 		serial2 = &uart2;
 	};
+
+	/* Fixed regulators */
+	vcc_sys: vsys-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_sys";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	vcc_io: vccio-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_io";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_sys>;
+	};
+
+	vcc_sd: sd-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_sd";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_io>;
+	};
+
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm0 0 25000>; /* 25kHz */
+		brightness-levels = /bits/ 16 <0 4 8 ... 255>;
+		default-brightness-level = <90>;
+		enable-gpios = <&gpio7 2 GPIO_ACTIVE_HIGH>;
+		status = "disabled"; /* U-Boot does not drive backlight */
+	};
 };
 
-&uart2 {
-	status = "okay";
-};
-
+/* PMIC: RK808 on I2C1 */
 &i2c1 {
 	status = "okay";
 
 	rk808: pmic@1b {
 		compatible = "rockchip,rk808";
 		reg = <0x1b>;
-		status = "okay";
+		interrupt-parent = <&gpio1>;
+		interrupts = <2 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pmic_int>;
+
+		system-power-controller;
+		wakeup-source;
+
+		regulators {
+			vdd_arm: DCDC1 {
+				regulator-name = "vdd_arm";
+				regulator-min-microvolt = <712500>;
+				regulator-max-microvolt = <1450000>;
+				regulator-always-on;
+				regulator-boot-on;
+			};
+
+			vdd_gpu: DCDC2 {
+				regulator-name = "vdd_gpu";
+				regulator-min-microvolt = <712500>;
+				regulator-max-microvolt = <1450000>;
+				regulator-always-on;
+				regulator-boot-on;
+			};
+
+			vdd_logic: DCDC3 {
+				regulator-name = "vdd_logic";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <1200000>;
+				regulator-always-on;
+				regulator-boot-on;
+			};
+
+			vccio: DCDC4 {
+				regulator-name = "vccio";
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-always-on;
+				regulator-boot-on;
+			};
+
+			vcc_sd: LDO5 {
+				regulator-name = "vcc_sd";
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-always-on;
+				regulator-boot-on;
+			};
+		};
 	};
 };
 
-&sdmmc {
+/* LCDC0 → MIPI-DSI0 */
+&lcdc0 {
+	status = "okay";
+
+	ports {
+		lcdc_out: port {
+			lcdc_out_ep: endpoint {
+				remote-endpoint = <&dsi_in_ep>;
+				data-mapping = "rgb888";
+			};
+		};
+	};
+};
+
+&mipi_dsi {
+	status = "okay";
+	rockchip,dsi-mode = <1>; /* video mode */
+	rockchip,dsi-lanes = <4>;
+
+	ports {
+		dsi_in: port {
+			dsi_in_ep: endpoint {
+				remote-endpoint = <&lcdc_out_ep>;
+			};
+		};
+	};
+
+	panel@0 {
+		compatible = "simple-panel-dsi";
+		reg = <0>;
+		reset-gpios = <&gpio7 4 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&gpio7 3 GPIO_ACTIVE_HIGH>;
+		backlight = <&backlight>;
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: timing0 {
+				clock-frequency = <65393216>;
+				hactive = <720>;
+				vactive = <1280>;
+				hsync-len = <20>;
+				hback-porch = <60>;
+				hfront-porch = <60>;
+				vsync-len = <8>;
+				vback-porch = <24>;
+				vfront-porch = <16>;
+				hsync-active = <0>;
+				vsync-active = <0>;
+				de-active = <0>;
+				pixelclk-active = <0>;
+			};
+		};
+	};
+};
+
+/* Storage */
+&emmc {
 	bus-width = <8>;
+	cap-mmc-highspeed;
+	non-removable;
+	disable-wp;
 	status = "okay";
 };
 
 &sdio0 {
 	bus-width = <4>;
+	non-removable;
 	status = "okay";
 };
 
+/* UART2 for console */
+&uart2 {
+	status = "okay";
+};
+
+/* PWM0 for backlight */
 &pwm0 {
 	status = "okay";
+};
+
+/* Pin control */
+&pinctrl {
+	pmic {
+		pmic_int: pmic-int {
+			rockchip,pins = <1 2 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	lcd {
+		lcd_en: lcd-en {
+			rockchip,pins = <7 3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		lcd_rst: lcd-rst {
+			rockchip,pins = <7 4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		bl_en: bl-en {
+			rockchip,pins = <7 2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	pwm {
+		pwm0_pin: pwm0-pin {
+			rockchip,pins = <7 1 RK_FUNC_2 &pcfg_pull_none>;
+		};
+	};
 };
