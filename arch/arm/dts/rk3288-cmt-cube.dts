@@ -33,33 +33,6 @@
 	};
 };
 
-&lcdc0 {
-	status = "okay";
-
-	ports {
-		lcdc_out: port {
-			lcdc_out_ep: endpoint {
-				remote-endpoint = <&dsi_in_ep>;
-				data-mapping = "rgb888";
-			};
-		};
-	};
-};
-
-&mipi_dsi0 {
-	status = "okay";
-	rockchip,dsi-lanes = <4>;
-	rockchip,dsi-mode = <1>;
-
-	ports {
-		dsi_in: port {
-			dsi_in_ep: endpoint {
-				remote-endpoint = <&lcdc_out_ep>;
-			};
-		};
-	};
-};
-
 &sdmmc {
 	bus-width = <8>;
 	status = "okay";
