@@ -1,89 +1,77 @@
-// arch/arm/dts/rk3288-cmt-cube.dts
+cat > arch/arm/dts/rk3288-cmt-cube.dts << 'EOF'
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Device Tree Source for CMT Cube RK3288
+ */
+
+/dts-v1/;
 #include "rk3288.dtsi"
 
 / {
-    model = "CMT Cube RK3288";
-    compatible = "rockchip,rk3288";
+	model = "CMT Cube RK3288";
+	compatible = "rockchip,rk3288";
 
-    chosen {
-        stdout-path = "serial2:115200n8";
-    };
+	chosen {
+		stdout-path = "serial2:115200n8";
+	};
 
-    aliases {
-        serial2 = &uart2;
-    };
-
-    /* 可选：U-Boot logo 显示 timing */
-    display-timings {
-        native-mode = <&timing0>;
-        timing0: timing0 {
-            clock-frequency = <65393216>;
-            hactive = <720>;
-            vactive = <1280>;
-            hsync-len = <20>;
-            hback-porch = <60>;
-            hfront-porch = <60>;
-            vsync-len = <8>;
-            vback-porch = <24>;
-            vfront-porch = <16>;
-            hsync-active = <0>;
-            vsync-active = <0>;
-            de-active = <0>;
-            pixelclk-active = <0>;
-        };
-    };
+	aliases {
+		serial2 = &uart2;
+	};
 };
 
 &uart2 {
-    status = "okay";
+	status = "okay";
 };
 
 &i2c1 {
-    status = "okay";
-    rk808: pmic@1b {
-        compatible = "rockchip,rk808";
-        reg = <0x1b>;
-        status = "okay";
-    };
+	status = "okay";
+
+	rk808: pmic@1b {
+		compatible = "rockchip,rk808";
+		reg = <0x1b>;
+		status = "okay";
+	};
 };
 
 &lcdc0 {
-    status = "okay";
+	status = "okay";
 
-    ports {
-        lcdc_out: port {
-            lcdc_out_ep: endpoint {
-                remote-endpoint = <&dsi_in_ep>;
-                data-mapping = "rgb888";
-            };
-        };
-    };
+	ports {
+		lcdc_out: port {
+			lcdc_out_ep: endpoint {
+				remote-endpoint = <&dsi_in_ep>;
+				data-mapping = "rgb888";
+			};
+		};
+	};
 };
 
 &mipi_dsi0 {
-    status = "okay";
-    rockchip,dsi-lanes = <4>;
-    rockchip,dsi-mode = <1>;
+	status = "okay";
+	rockchip,dsi-lanes = <4>;
+	rockchip,dsi-mode = <1>;
 
-    ports {
-        dsi_in: port {
-            dsi_in_ep: endpoint {
-                remote-endpoint = <&lcdc_out_ep>;
-            };
-        };
-    };
+	ports {
+		dsi_in: port {
+			dsi_in_ep: endpoint {
+				remote-endpoint = <&lcdc_out_ep>;
+			};
+		};
+	};
 };
 
 &sdmmc {
-    bus-width = <8>;
-    status = "okay";
+	bus-width = <8>;
+	status = "okay";
 };
 
 &sdio0 {
-    bus-width = <4>;
-    status = "okay";
+	bus-width = <4>;
+	status = "okay";
 };
 
 &pwm0 {
-    status = "okay";
+	status = "okay";
 };
+EOF
