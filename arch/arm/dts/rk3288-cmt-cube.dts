@@ -1,0 +1,59 @@
+// arch/arm/dts/rk3288-cmt-cube.dts
+#include "rk3288.dtsi"
+
+/ {
+    model = "CMT Cube RK3288";
+    compatible = "rockchip,rk3288";
+
+    chosen {
+        stdout-path = "serial2:115200n8";
+    };
+
+    aliases {
+        serial2 = &uart2;
+    };
+};
+
+&uart2 {
+    status = "okay";
+};
+
+&i2c1 {
+    status = "okay";
+    rk808: pmic@1b {
+        compatible = "rockchip,rk808";
+        reg = <0x1b>;
+        // ... regulator 配置可简化，或从 kernel dts 复用
+        status = "okay";
+    };
+};
+
+&lcdc0 {
+    status = "okay";
+};
+
+&mipi_dsi0 {
+    status = "okay";
+    rockchip,dsi-lanes = <4>;
+    rockchip,dsi-mode = <1>; // video mode
+};
+
+&sdmmc {
+    bus-width = <8>;
+    status = "okay";
+};
+
+&sdio0 {
+    bus-width = <4>;
+    status = "okay";
+};
+
+&pwm0 {
+    status = "okay";
+};
+
+&backlight {
+    compatible = "pwm-backlight";
+    pwms = <&pwm0 0 25000>;
+    enable-gpios = <&gpio7 2 GPIO_ACTIVE_HIGH>;
+};

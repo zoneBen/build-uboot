@@ -1,0 +1,81 @@
+# .github/workflows/build.yml
+name: Build U-Boot for CMT Cube RK3288
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            gcc-arm-linux-gnueabihf \
+            device-tree-compiler \
+            python3 \
+            bison flex \
+            libssl-dev \
+            u-boot-tools
+
+      - name: Clone U-Boot from source.denx.de (mirror via GitHub)
+        run: |
+          git clone https://github.com/u-boot/u-boot.git
+          cd u-boot
+          # 可选：指定稳定版本，如 v2024.01
+          # git checkout v2024.01
+
+      - name: Copy custom config and dts
+        run: |
+          cp configs/cmt_cube_rk3288_defconfig u-boot/configs/
+          cp arch/arm/dts/rk3288-cmt-cube.dts u-boot/arch/arm/dts/
+
+      - name: Build U-Boot
+        working-directory: u-boot
+        run: |
+          export ARCH=arm
+          export CROSS_COMPILE=arm-linux-gnueabihf-
+          make cmt_cube_rk3288_defconfig
+          make -j$(nproc)
+
+      - name: Pack idbloader.img (SPL + TPL)
+        working-directory: u-boot
+        run: |
+          if [ -f spl/u-boot-spl.bin ]; then
+            ./tools/mkimage -n rk3288 -T rksd -d spl/u-boot-spl.bin idbloader.img
+          else
+            echo "SPL not built! Check CONFIG_SPL=y"
+            exit 1
+          fi
+
+      - name: Create boot.img (FIT image with DTB)
+        working-directory: u-boot
+        run: |
+          # 若使用 FIT image（推荐）
+          cp u-boot.itb boot.img
+          # 或者传统方式：u-boot-dtb.bin
+          # cp u-boot-dtb.bin boot.img
+
+      - name: Merge idbloader.img + boot.img → full.bin
+        working-directory: u-boot
+        run: |
+          # idbloader: 64 sectors = 32KB
+          # boot.img 起始于 sector 64 (0x8000)
+          dd if=/dev/zero of=full.bin bs=512 count=64
+          dd if=idbloader.img of=full.bin conv=notrunc
+          dd if=boot.img of=full.bin bs=512 seek=64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rk3288-cmt-uboot-full
+          path: u-boot/full.bin
+          retention-days: 7
