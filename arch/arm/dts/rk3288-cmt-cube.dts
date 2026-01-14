@@ -155,25 +155,6 @@
 		reset-gpios = <&gpio7 4 GPIO_ACTIVE_LOW>;
 		enable-gpios = <&gpio7 3 GPIO_ACTIVE_HIGH>;
 		backlight = <&backlight>;
-
-		display-timings {
-			native-mode = <&timing0>;
-			timing0: timing0 {
-				clock-frequency = <65393216>;
-				hactive = <720>;
-				vactive = <1280>;
-				hsync-len = <20>;
-				hback-porch = <60>;
-				hfront-porch = <60>;
-				vsync-len = <8>;
-				vback-porch = <24>;
-				vfront-porch = <16>;
-				hsync-active = <0>;
-				vsync-active = <0>;
-				de-active = <0>;
-				pixelclk-active = <0>;
-			};
-		};
 	};
 };
 
